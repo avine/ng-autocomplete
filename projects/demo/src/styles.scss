@@ -1,1 +1,14 @@
 /* You can add global styles to this file, and also import other style files */
+
+@import '~@angular/cdk/overlay-prebuilt.css';
+
+body {
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+
+input {
+  outline: none;
+  border: 1px solid #ccc;
+  padding: 0.5rem 1rem;
+  font: inherit;
+}
