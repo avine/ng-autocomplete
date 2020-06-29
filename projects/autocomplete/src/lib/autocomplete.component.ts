@@ -7,14 +7,10 @@ import { Component, OnInit } from '@angular/core';
       autocomplete works!
     </p>
   `,
-  styles: [
-  ]
+  styles: [],
 })
 export class AutocompleteComponent implements OnInit {
+  constructor() {}
 
-  constructor() { }
-
-  ngOnInit(): void {
-  }
-
+  ngOnInit(): void {}
 }
