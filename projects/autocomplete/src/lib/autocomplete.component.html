@@ -6,10 +6,11 @@
   [disabled]="isInputDisabled"
   [value]="inputValue"
   (input)="inputValueChanged(inputRef.value)"
-  (blur)="inputFieldLeaved()"
+  (blur)="controlValueTouched()"
   (keydown.ArrowUp)="onArrowUp($event)"
   (keydown.ArrowDown)="onArrowDown($event)"
   (keydown.Enter)="onEnter()"
+  (keydown.Escape)="onEscape()"
 />
 
 <ng-template
@@ -25,8 +26,7 @@
       class="autocomplete__suggestion"
       [class.autocomplete__suggestion--focused]="suggestionIndex === focusedSuggestionIndex"
       [innerHTML]="highlightOption(option)"
-      (mousedown)="selectSuggestion(option)"
-      (touchstart)="selectSuggestion(option)"
+      (click)="selectSuggestion(option)"
     ></div>
   </div>
 </ng-template>

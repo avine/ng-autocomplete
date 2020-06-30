@@ -8,11 +8,13 @@ import {
   ElementRef,
   EventEmitter,
   forwardRef,
+  HostListener,
   Input,
   OnDestroy,
   OnInit,
   Output,
   QueryList,
+  ViewChild,
   ViewChildren,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
@@ -65,6 +67,8 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
 
   @Input() placeholder = '';
 
+  @ViewChild('inputRef') inputRef!: ElementRef<HTMLInputElement>;
+
   /* ----- Suggestions related properties ----- */
 
   @Input() highlightTag = 'b';
@@ -79,10 +83,21 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
 
   private subscription!: Subscription;
 
+  @HostListener('document:click', ['$event']) closeSuggestion(event: Event): void {
+    if (event.target === this.inputRef.nativeElement) {
+      return;
+    }
+    const suggestionElements = this.suggestionsQueryList.toArray().map((suggestionRef) => suggestionRef.nativeElement);
+    if (suggestionElements.includes(event.target as HTMLElement)) {
+      return;
+    }
+    this.shouldDisplaySuggestions = false;
+  }
+
   /* ----- Control value accessor methods ----- */
 
-  private onChange: (value: string) => void = () => {};
-  private onTouched: () => void = () => {};
+  private controlValueChanged: (value: string) => void = () => {};
+  controlValueTouched: () => void = () => {};
 
   constructor(private changeDetectorRef: ChangeDetectorRef) {}
 
@@ -111,7 +126,7 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
     this.inputValue$.next(this.inputValue);
     if (shouldEmitChange) {
       this.valueChange.emit(value);
-      this.onChange(value);
+      this.controlValueChanged(value);
     }
   }
 
@@ -124,11 +139,6 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
     this.updateInputValue(value);
     this.shouldDisplaySuggestions = false;
     this.focusedSuggestionIndex = -1;
-  }
-
-  inputFieldLeaved(): void {
-    this.onTouched();
-    this.shouldDisplaySuggestions = false;
   }
 
   onArrowUp(event: Event): void {
@@ -158,6 +168,10 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
     this.selectSuggestion(this.suggestions[this.focusedSuggestionIndex]);
   }
 
+  onEscape(): void {
+    this.shouldDisplaySuggestions = false;
+  }
+
   private scrollToFocusedSuggestion(): void {
     this.suggestionsQueryList.toArray()[this.focusedSuggestionIndex].nativeElement.scrollIntoView({ block: 'nearest' });
   }
@@ -179,11 +193,11 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
   }
 
   registerOnChange(fn: (value: string) => void): void {
-    this.onChange = fn;
+    this.controlValueChanged = fn;
   }
 
   registerOnTouched(fn: () => void): void {
-    this.onTouched = fn;
+    this.controlValueTouched = fn;
   }
 
   setDisabledState?(isDisabled: boolean): void {
