@@ -7,7 +7,6 @@ import {
   Component,
   ElementRef,
   EventEmitter,
-  forwardRef,
   HostListener,
   Input,
   OnDestroy,
@@ -17,7 +16,14 @@ import {
   ViewChild,
   ViewChildren,
 } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import {
+  AbstractControl,
+  ControlValueAccessor,
+  NG_VALIDATORS,
+  NG_VALUE_ACCESSOR,
+  ValidationErrors,
+  Validator,
+} from '@angular/forms';
 
 import { escapeRegExp } from '../utils/escape-regexp';
 
@@ -25,43 +31,48 @@ import { escapeRegExp } from '../utils/escape-regexp';
   selector: 'avn-autocomplete',
   templateUrl: './autocomplete.component.html',
   styleUrls: ['./autocomplete.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => AutocompleteComponent),
+      useExisting: AutocompleteComponent,
+      multi: true,
+    },
+    {
+      provide: NG_VALIDATORS,
+      useExisting: AutocompleteComponent,
       multi: true,
     },
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDestroy {
-  /* --- Options related properties --- */
+export class AutocompleteComponent implements ControlValueAccessor, Validator, OnInit, OnDestroy {
+  /* --- Items related properties --- */
 
-  private options: string[] = [];
-  private options$ = new BehaviorSubject<string[]>(this.options);
+  private items$ = new BehaviorSubject<string[]>([]);
 
   @Input() set items(items: string[]) {
-    this.options = items;
-    this.options$.next(this.options);
+    this.items$.next(items);
   }
+
   get items(): string[] {
-    return this.options;
+    return this.items$.value;
   }
 
   /* --- Input field related properties --- */
 
-  inputValue = '';
-  private inputValue$ = new BehaviorSubject<string>(this.inputValue);
+  private value$ = new BehaviorSubject<string>('');
 
   @Input() set value(value: string) {
-    this.updateInputValue(value, false);
+    this.value$.next(value);
   }
+
   get value(): string {
-    return this.inputValue;
+    return this.value$.value;
   }
+
   @Output() valueChange = new EventEmitter<string>();
 
-  @Input() inputMinLength = 3;
+  @Input() inputMinLength = 0;
 
   @Input() isInputDisabled = false;
 
@@ -94,19 +105,22 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
     this.shouldDisplaySuggestions = false;
   }
 
-  /* ----- Control value accessor methods ----- */
+  /* ----- ControlValueAccessor related methods ----- */
 
-  private controlValueChanged: (value: string) => void = () => {};
-  controlValueTouched: () => void = () => {};
+  private controlValueChanged: (value: string) => void = () => undefined;
+
+  controlValueTouched: () => void = () => undefined;
+
+  /* ----- */
 
   constructor(private changeDetectorRef: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-    this.subscription = combineLatest([this.options$, this.inputValue$])
+    this.subscription = combineLatest([this.items$, this.value$])
       .pipe(
-        map(([options, inputValue]) => {
-          const valueToLowerCase = inputValue.toLowerCase();
-          return options.filter((option) => option.toLowerCase().includes(valueToLowerCase));
+        map(([items, value]) => {
+          const valueInLowerCase = value.toLowerCase();
+          return items.filter((item) => item.toLowerCase().includes(valueInLowerCase));
         }),
         tap((suggestions) => {
           if (this.focusedSuggestionIndex >= suggestions.length) {
@@ -121,30 +135,25 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
     this.subscription.unsubscribe();
   }
 
-  private updateInputValue(value: string, shouldEmitChange = true): void {
-    this.inputValue = value;
-    this.inputValue$.next(this.inputValue);
-    if (shouldEmitChange) {
-      this.valueChange.emit(value);
-      this.controlValueChanged(value);
-    }
+  private dispatchValue(value: string): void {
+    this.value$.next(value);
+    this.valueChange.emit(value);
+    this.controlValueChanged(value);
   }
 
-  inputValueChanged(value: string): void {
-    this.updateInputValue(value);
+  onFocus(): void {
+    this.shouldDisplaySuggestions = this.inputMinLength === 0;
+  }
+
+  onInput(value: string): void {
+    this.dispatchValue(value);
     this.shouldDisplaySuggestions = value.length >= this.inputMinLength;
-  }
-
-  selectSuggestion(value: string): void {
-    this.updateInputValue(value);
-    this.shouldDisplaySuggestions = false;
-    this.focusedSuggestionIndex = -1;
   }
 
   onArrowUp(event: Event): void {
     event.preventDefault();
     if (!this.suggestionsQueryList.length) {
-      this.shouldDisplaySuggestions = this.inputValue.length >= this.inputMinLength;
+      this.shouldDisplaySuggestions = this.value$.value.length >= this.inputMinLength;
       return;
     }
     this.focusedSuggestionIndex = Math.max(0, this.focusedSuggestionIndex - 1);
@@ -154,7 +163,7 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
   onArrowDown(event: Event): void {
     event.preventDefault();
     if (!this.suggestionsQueryList.length) {
-      this.shouldDisplaySuggestions = this.inputValue.length >= this.inputMinLength;
+      this.shouldDisplaySuggestions = this.value$.value.length >= this.inputMinLength;
       return;
     }
     this.focusedSuggestionIndex = Math.min(this.suggestionsQueryList.length - 1, this.focusedSuggestionIndex + 1);
@@ -162,8 +171,14 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
   }
 
   onEnter(): void {
-    if (!this.suggestionsQueryList.length || this.focusedSuggestionIndex === -1) {
+    if (
+      this.suggestionsQueryList.length === 0 ||
+      (this.suggestionsQueryList.length >= 2 && this.focusedSuggestionIndex === -1)
+    ) {
       return;
+    }
+    if (this.suggestionsQueryList.length === 1) {
+      this.focusedSuggestionIndex = 0;
     }
     this.selectSuggestion(this.suggestions[this.focusedSuggestionIndex]);
   }
@@ -172,23 +187,29 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
     this.shouldDisplaySuggestions = false;
   }
 
+  selectSuggestion(value: string): void {
+    this.dispatchValue(value);
+    this.shouldDisplaySuggestions = false;
+    this.focusedSuggestionIndex = -1;
+  }
+
   private scrollToFocusedSuggestion(): void {
     this.suggestionsQueryList.toArray()[this.focusedSuggestionIndex].nativeElement.scrollIntoView({ block: 'nearest' });
   }
 
-  trackByOption(index: number, option: string): string {
-    return option;
+  trackBySuggestion(_: number, suggestion: string): string {
+    return suggestion;
   }
 
-  highlightOption(option: string): string {
+  highlightSuggestion(suggestion: string): string {
     const tag = this.highlightTag;
-    return option.replace(new RegExp(escapeRegExp(this.inputValue), 'i'), `<${tag}>$&</${tag}>`);
+    return suggestion.replace(new RegExp(escapeRegExp(this.value$.value), 'i'), `<${tag}>$&</${tag}>`);
   }
 
   /* ---- ControlValueAccessor implementation ---- */
 
   writeValue(value: string | null): void {
-    this.updateInputValue(value || '', false);
+    this.value$.next(value || '');
     this.changeDetectorRef.markForCheck();
   }
 
@@ -202,5 +223,11 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
 
   setDisabledState?(isDisabled: boolean): void {
     this.isInputDisabled = isDisabled;
+  }
+
+  /* ---- Validator implementation ---- */
+
+  validate(control: AbstractControl): ValidationErrors {
+    return !control.value || this.items?.includes(control.value) ? null : { autocomplete: true };
   }
 }

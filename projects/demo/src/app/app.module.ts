@@ -1,14 +1,15 @@
-import { BrowserModule } from '@angular/platform-browser';
+import { AutocompleteModule } from 'autocomplete';
+
 import { NgModule } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 
-import { AutocompleteModule } from 'autocomplete';
-
 @NgModule({
   declarations: [AppComponent],
-  imports: [BrowserModule, AppRoutingModule, AutocompleteModule],
+  imports: [BrowserModule, AppRoutingModule, AutocompleteModule, ReactiveFormsModule],
   providers: [],
   bootstrap: [AppComponent],
 })

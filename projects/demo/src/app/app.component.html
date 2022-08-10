@@ -1,5 +1,10 @@
-<avn-autocomplete
-  [placeholder]="'Yeah'"
-  [(value)]="value"
-  [items]="['Hel', 'Hello', 'Hello wor', 'Hello world!']"
-></avn-autocomplete>
+<form [formGroup]="formGroup">
+  <avn-autocomplete
+    [placeholder]="'Yeah'"
+    formControlName="value"
+    [items]="['Hel', 'Hello', 'Hello wor', 'Hello world!']"
+  ></avn-autocomplete>
+</form>
+
+<pre>{{ formGroup.value | json }}</pre>
+<pre>{{ formGroup.get('value').errors | json }}</pre>

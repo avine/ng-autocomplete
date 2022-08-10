@@ -4,8 +4,9 @@
   #inputRef
   [placeholder]="placeholder"
   [disabled]="isInputDisabled"
-  [value]="inputValue"
-  (input)="inputValueChanged(inputRef.value)"
+  [value]="value"
+  (focus)="onFocus()"
+  (input)="onInput(inputRef.value)"
   (blur)="controlValueTouched()"
   (keydown.ArrowUp)="onArrowUp($event)"
   (keydown.ArrowDown)="onArrowDown($event)"
@@ -22,11 +23,11 @@
     <div
       #suggestionsQueryList
       tabindex="0"
-      *ngFor="let option of suggestions; index as suggestionIndex; trackBy: trackByOption"
+      *ngFor="let suggestion of suggestions; index as suggestionIndex; trackBy: trackBySuggestion"
       class="autocomplete__suggestion"
       [class.autocomplete__suggestion--focused]="suggestionIndex === focusedSuggestionIndex"
-      [innerHTML]="highlightOption(option)"
-      (click)="selectSuggestion(option)"
+      [innerHTML]="highlightSuggestion(suggestion)"
+      (click)="selectSuggestion(suggestion)"
     ></div>
   </div>
 </ng-template>
