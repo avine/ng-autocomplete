@@ -23,11 +23,13 @@
     <div
       #suggestionsQueryList
       tabindex="0"
-      *ngFor="let suggestion of suggestions; index as suggestionIndex; trackBy: trackBySuggestion"
+      *ngFor="let suggestion of suggestions; index as suggestionIndex; trackBy: trackBySuggestionValue"
       class="autocomplete__suggestion"
       [class.autocomplete__suggestion--focused]="suggestionIndex === focusedSuggestionIndex"
-      [innerHTML]="highlightSuggestion(suggestion)"
       (click)="selectSuggestion(suggestion)"
-    ></div>
+    >
+      <span *ngIf="suggestion.prefix" class="autocomplete__suggestion-prefix">{{ suggestion.prefix }}</span>
+      <span [innerHTML]="highlightSuggestion(suggestion)"></span>
+    </div>
   </div>
 </ng-template>

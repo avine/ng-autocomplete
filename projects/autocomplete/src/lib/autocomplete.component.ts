@@ -26,6 +26,8 @@ import {
 } from '@angular/forms';
 
 import { escapeRegExp } from '../utils/escape-regexp';
+import { AutocompleteItem } from './autocomplete.types';
+import { getAutocompleteItem } from './autocomplete.utils';
 
 @Component({
   selector: 'avn-autocomplete',
@@ -48,14 +50,14 @@ import { escapeRegExp } from '../utils/escape-regexp';
 export class AutocompleteComponent implements ControlValueAccessor, Validator, OnInit, OnDestroy {
   /* --- Items related properties --- */
 
-  private items$ = new BehaviorSubject<string[]>([]);
+  private items$ = new BehaviorSubject<AutocompleteItem[]>([]);
 
-  @Input() set items(items: string[]) {
+  private itemsValue: string[] = [];
+
+  @Input() set items(data: (string | AutocompleteItem)[]) {
+    const items = data.map(getAutocompleteItem);
     this.items$.next(items);
-  }
-
-  get items(): string[] {
-    return this.items$.value;
+    this.itemsValue = items.map(({ value }) => value);
   }
 
   /* --- Input field related properties --- */
@@ -84,7 +86,7 @@ export class AutocompleteComponent implements ControlValueAccessor, Validator, O
 
   @Input() highlightTag = 'b';
 
-  suggestions: string[] = [];
+  suggestions: AutocompleteItem[] = [];
 
   @ViewChildren('suggestionsQueryList') suggestionsQueryList!: QueryList<ElementRef<HTMLElement>>;
 
@@ -120,7 +122,7 @@ export class AutocompleteComponent implements ControlValueAccessor, Validator, O
       .pipe(
         map(([items, value]) => {
           const valueInLowerCase = value.toLowerCase();
-          return items.filter((item) => item.toLowerCase().includes(valueInLowerCase));
+          return items.filter((item) => item.value.toLowerCase().includes(valueInLowerCase));
         }),
         tap((suggestions) => {
           if (this.focusedSuggestionIndex >= suggestions.length) {
@@ -187,8 +189,8 @@ export class AutocompleteComponent implements ControlValueAccessor, Validator, O
     this.shouldDisplaySuggestions = false;
   }
 
-  selectSuggestion(value: string): void {
-    this.dispatchValue(value);
+  selectSuggestion(suggestion: AutocompleteItem): void {
+    this.dispatchValue(suggestion.value);
     this.shouldDisplaySuggestions = false;
     this.focusedSuggestionIndex = -1;
   }
@@ -197,13 +199,13 @@ export class AutocompleteComponent implements ControlValueAccessor, Validator, O
     this.suggestionsQueryList.toArray()[this.focusedSuggestionIndex].nativeElement.scrollIntoView({ block: 'nearest' });
   }
 
-  trackBySuggestion(_: number, suggestion: string): string {
-    return suggestion;
+  trackBySuggestionValue(_: number, suggestion: AutocompleteItem): string {
+    return suggestion.value;
   }
 
-  highlightSuggestion(suggestion: string): string {
+  highlightSuggestion(suggestion: AutocompleteItem): string {
     const tag = this.highlightTag;
-    return suggestion.replace(new RegExp(escapeRegExp(this.value$.value), 'i'), `<${tag}>$&</${tag}>`);
+    return suggestion.value.replace(new RegExp(escapeRegExp(this.value$.value), 'i'), `<${tag}>$&</${tag}>`);
   }
 
   /* ---- ControlValueAccessor implementation ---- */
@@ -228,6 +230,6 @@ export class AutocompleteComponent implements ControlValueAccessor, Validator, O
   /* ---- Validator implementation ---- */
 
   validate(control: AbstractControl): ValidationErrors {
-    return !control.value || this.items?.includes(control.value) ? null : { autocomplete: true };
+    return !control.value || this.itemsValue.includes(control.value) ? null : { autocomplete: true };
   }
 }

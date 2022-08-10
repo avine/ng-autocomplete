@@ -1,9 +1,5 @@
 <form [formGroup]="formGroup">
-  <avn-autocomplete
-    [placeholder]="'Yeah'"
-    formControlName="value"
-    [items]="['Hel', 'Hello', 'Hello wor', 'Hello world!']"
-  ></avn-autocomplete>
+  <avn-autocomplete [placeholder]="'Yeah'" formControlName="value" [items]="items"></avn-autocomplete>
 </form>
 
 <pre>{{ formGroup.value | json }}</pre>

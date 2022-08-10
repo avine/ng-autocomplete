@@ -1,3 +1,5 @@
+import { AutocompleteItem } from 'autocomplete';
+
 import { Component } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 
@@ -8,6 +10,8 @@ import { FormBuilder, Validators } from '@angular/forms';
 })
 export class AppComponent {
   title = 'demo';
+
+  items: (string | AutocompleteItem)[] = ['Hel', 'Hello', { value: 'Hello wor', prefix: '🇺🇸' }, 'Hello world!'];
 
   formGroup = this.fb.group({
     value: ['', [Validators.required]],
